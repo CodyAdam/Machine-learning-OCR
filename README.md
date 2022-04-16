@@ -1,88 +1,42 @@
+*made in 09/2019*
+
 # Machine-learning-OCR
 Machine learning Optical Character Recognition (OCR) project. Read the time on a digital clock but inputting an image.
 
+- [Machine-learning-OCR](#machine-learning-ocr)
+- [The process](#the-process)
+  - [Step 0 : The input image](#step-0--the-input-image)
+  - [Step 1 : Homographic transformation](#step-1--homographic-transformation)
+  - [Step 2 : Output from the homography](#step-2--output-from-the-homography)
+  - [Step 3 : Masking the image](#step-3--masking-the-image)
+  - [Step 4 : Process of analysis](#step-4--process-of-analysis)
+- [The trainning process](#the-trainning-process)
 
- <div class="img-container">
-   <style>
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      font-family: Century Gothic, CenturyGothic, AppleGothic, sans-serif;
-    }
-    img {
-      border-radius: 17px;
-      width: auto;
-      height: 350px;
-      margin-left: 30px;
-      margin-right: 30px;
-    }
-    .img-container {
-      width: 100%;
-      height: 350px;
-      margin-bottom: 50px;
-      display: inline-block;
-    }
-    .left {
-      float: left;
-    }
-    .right {
-      float: right;
-    }
-    p {
-      font-size: 1.2rem;
-      margin: 0;
-      box-sizing: border-box;
-    }
-  </style>
-      <img src="Original.png" alt="Original.png is missing" class="left" />
-      <h1 style="text-align: left">Image à analyser</h1>
-      <p style="text-align: left"></p>
-    </div>
-    <div class="img-container">
-      <img
-        src="HomographyMatches.png"
-        alt="HomographyMatches.png is missing"
-        class="right"
-      />
-      <h1 style="text-align: right">Teste homographique</h1>
-      <p style="text-align: right">
-        Recherche des similarités avec<br />
-        une image de référence
-      </p>
-    </div>
-    <div class="img-container">
-      <img
-        src="WrapedImage.png"
-        alt="WrapedImage.png is missing"
-        class="left"
-      />
-      <h1 style="text-align: left">Résultat de l'homographie</h1>
-      <p style="text-align: left">
-        Si l'homographie est un succès alors l'image <br />
-        est rognée et transformée selon la référence homographie <br />
-        Sinon l'image reste l'image d'entrée
-      </p>
-    </div>
-    <div class="img-container">
-      <img src="BinaryMask.png" alt="BinaryMask.png is missing" class="right" />
-      <h1 style="text-align: right">Création du masque</h1>
-      <p style="text-align: right">
-        On crée une image binaire à partir de l'image<br />
-        précédente en fonction d'un seuil de couleur
-      </p>
-    </div>
-    <div class="img-container">
-      <img
-        src="FinalResult.png"
-        alt="FinalResult.png is missing"
-        class="left"
-      />
-      <h1 style="text-align: left">Analyse machine learning</h1>
-      <p style="text-align: left">
-        On détoure chaque élément de l'image binaire, <br />
-        puis on compare ces formes avec <br />
-        une banque d'images de chiffre<br />
-        Ensuite l'algorithme renvoie le digit correspondant <br />
-      </p>
-    </div>
+# The process
+
+## Step 0 : The input image
+![](Original.png)
+We want to extract the time from an image.
+
+## Step 1 : Homographic transformation
+![](HomographyMatches.png)
+
+Look for the similarity between the reference image and the input image. The goal here is to revert the effect of perspective distortion in order to get a flat image and getting rid of the useless parts of the image.
+
+## Step 2 : Output from the homography
+![](WrapedImage.png)
+
+If the homography is a success then the image is wrapped and transformed according to the reference homography else the image is the input image.
+
+## Step 3 : Masking the image
+![](BinaryMask.png)
+We create a binary image from the previous image according to a color threshold
+
+## Step 4 : Process of analysis
+![](FinalResult.png)
+We extract each element of the binary image, then the trained model compare these shapes with a bank of images of digits. Then the algorithm returns the corresponding digit.
+
+# The trainning process
+
+![](training%20roi.png)
+To train ou model we have a bank of images of digits sorted and labeled. We can then use a classification algorithm to train the model.
