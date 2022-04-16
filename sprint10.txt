@@ -1,0 +1,179 @@
+Compte rendu de DIE de Cody ADAM :
+
+Sommaire : 
+    1 - les librairies utilisées
+    2 - Hiérarchie du projet
+    3 - Les préalables
+    4 - L'exécution et la détection
+    5 - Testing
+
+
+1 - Les librairies utilisées sont : 
+        opencv 3.4.2.16
+        opencv-contrib 3.4.2.16
+        numpy
+        os
+        math
+
+    (Projet réalisé en Python)
+
+
+2 - Hiérarchie du projet :
+        code-sprint10.py
+        homography.png
+        >> output
+            lecture-heure.html
+            Original.png
+            HomographyMatches.png
+            WrapedImage.png
+            BinaryMask.png
+            FinalResult.png
+            HourGuessed.png
+        >> samples
+            >> roi
+                >> 0
+                    0-digit1.png
+                    0-digit2.png
+                    [...]
+                >> 1
+                    [...]
+                >> 2
+                [...]
+            samples-img1.jpg
+            samples-img2.jpg
+            [...]
+  
+
+3 - Les préalables :
+    0. Ouvrir une image :
+        Pour ouvrir et utiliser chaque image du programme, j'utilise mes
+        fonctions `LoadImg()` et `LoadImgGrey()` qui utilisent la fonction
+        cv2.imread() d'opencv.
+
+    1. Créer un masque :
+        Dans un premier temps il a fallu créer un masque binaire qui filtre 
+        seulement les chiffres de l'horloge par couleur dans le but d'analyser 
+        les chiffres plus facilement.
+        Pour ce faire j'utilise la fonction `CreateMask()` 
+
+            def CreateMask(img, lower1, upper1, dilate, doShow):
+                hsvImg = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+                lower = np.array(lower1)
+                upper = np.array(upper1)
+                mask = cv2.inRange(hsvImg, lower, upper)
+
+                mask = cv2.dilate(mask, (np.ones((dilate, dilate), np.uint8)))
+                if doShow:
+                    cv2.namedWindow("mask", cv2.WINDOW_FREERATIO)
+                    cv2.imshow("mask", mask)
+                cv2.imwrite("output/BinaryMask.png", mask)
+                return mask
+        
+        Cette fonction me renvoi mon masque binaire de mon image `img` qui
+        a été filtré grâce au seuil `lower1` et `lower2`.
+
+    2. Création de la banque de données :
+        Pour que la détection par machine learning des chiffres fonctionne,
+        il est nécessaire de faire apprendre l'algorithme via des exemples,
+        je dois donc générer ces exemples. 
+        J'utilise alors ma fonction `SaveRoi()`
+
+            def SaveRoi(img, mask):
+                _, contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.namedWindow("roi",cv2.WINDOW_FREERATIO)
+                cv2.namedWindow("norm",cv2.WINDOW_FREERATIO)
+                keys = [i for i in range(48, 58)]
+                for contour in contours:
+                    if cv2.contourArea(contour) > 25:
+                        [x, y, w, h] = cv2.boundingRect(contour)
+
+                        if h > 10 and h > w:
+                            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                            roi = mask[y:y + h, x:x + w]
+                            roismall = cv2.resize(roi, (10, 10))
+                            cv2.imshow("roi", roismall)
+                            cv2.imshow("norm", img)
+
+                            key = cv2.waitKey(0)
+
+                            if key == 27:
+                                exit()
+                            elif key in keys:
+                                response = int(chr(key))
+                                cv2.imwrite("samples/roi/"+str(response)+"/"+str(random.randint(0,10000))+".png", roismall)
+                print("\nRoi Printed\n")
+
+        Cette fonction me permet de prendre en entrée une image avec son masque et
+        demande à l'utilisateur pour chaque chiffre à quoi il correspond puis
+        enregistre ce chiffre en tant qu'image dans `samples/roi/<chiffre>/img.png`
+        après des itérations sur une 50ène d'images nous arrivons avec 800 chiffres dans
+        la base de données
+
+4 - L'exécution et la détection
+    1 - On charge l'image (voir 3.0)
+
+    2 - Training de l'algo :
+        On entraine l'algorithme ML d'opencv (K-Nearest Neighbour) en utilisant la fonction
+        `Training()`
+
+            def Training(roiPath):
+                samples = np.empty((0, 100))
+                responses = []
+                
+                for digit in range(0,10):
+                    for filePath in os.listdir(roiPath+"/"+str(digit)):
+                        if filePath.endswith(".png"):
+                            filePath = roiPath+ "/"+ str(digit) + "/" + filePath
+                            responses.append(digit)
+                            roi = LoadImgGrey(filePath)
+                            sample = roi.reshape((1, 100))
+                            samples = np.append(samples, sample, 0)
+                            samples = np.float32(samples)
+                            print(str(digit) + "  -  " + filePath)
+
+                responses = np.array(responses, np.float32)
+                responses = responses.reshape((responses.size,))
+                print("\nTraining complete\n")
+                return (samples, responses)
+
+        La fonction prend toutes les image situé dans `samples/roi` et les assignent
+        chaqune avec leurs valeurs numérique 
+    
+    3 - Transfomation Homographique : 
+        Pour faciliter la detection, j'utilise un script d'homographie.
+        L'homographie consiste à prendre une image de référence et de trouver
+        si l'image de référence est visible dans une seconde image en étudiant
+        les similitudes des deux images.
+
+        J'utilise pour cela ma fonction `GetHomography()`
+
+        Si la fonction retrouve l'image référence dans l'image à analyser (ici la référence est
+        l'horloge `homography.png`) alors on rogne l'image à analyser pour ne laisser que l'horloge et enlever les
+        surplus qui sont inutiles (avec `HomographyTransform()`)
+
+        Sinon l'image n'est pas rognée et reste tel quel.
+
+    4 - Creation du masque de l'image (voir 3.1)
+
+    5 - Detection des chiffres :
+        Pour détecter les chiffres j'utilise mon algorithme (K-Nearest Neighbour)
+        qui a été précédement entrainer
+        L'algo comparent les chiffres de l'image à analyser avec la base données
+        et observent les ressemblances pour déterminer la valeur du chiffre.
+
+        Il renvoie alors chaque chiffres de l'image ainsi que leurs coordonnées
+    
+    6 - De coordonnées à heure
+        Pour connaitre l'heure on prend les coordonées des chiffres
+        et on observe les 4 premiers chiffres les plus proches du point (0, 0)
+        qui se trouvent en haut à gauche de l'image
+        On obtient alors l'heure et les minutes.
+
+5 - Testing :
+    Pour tester mon script j'utilise la fonction `RecognizeDigit()`
+    elle prend en entrée une image et elle stocke directement l'heure 
+    et toutes les étapes du script dans le dossier `output`
+
+    Pour tester beaucoup d'images, j'utilise `TestDirectory()`
+    qui prend en entrée le chemin d'un dossier, et applique 
+    le teste ci-dessus pour toutes les images du dossier.   
