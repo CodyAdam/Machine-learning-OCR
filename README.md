@@ -2,7 +2,7 @@
 
 # Machine-learning-OCR
 
-Machine learning Optical Character Recognition (OCR) project. Read the time on a digital clock but inputting an image.
+Machine learning Optical Character Recognition (OCR) project. Read the time on a digital clock by inputting an image.
 
 - [Machine-learning-OCR](#machine-learning-ocr)
 - [The process](#the-process)
